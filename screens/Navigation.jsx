@@ -15,6 +15,8 @@ function Navigation() {
                 title: 'Start a Meeting',
                 headerStyle: {
                     backgroundColor: "#1c1c1c",
+                    shadowOpacity: 0,
+                    borderBottomColor: '#1c1c1c'
                 },
                 headerTintColor: "white"
             }}  
