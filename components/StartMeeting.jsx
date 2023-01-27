@@ -25,7 +25,7 @@ function StartMeeting({name, setName, roomId, setRoomId, joinRoom}) {
         </View>
         <View style={{alignItems: 'center'}}>
             <TouchableOpacity 
-            onPress={() => joinRoom}
+            onPress={() => joinRoom()}
             style={styles.meetingButton}>
                 <Text style={{color: 'white', fontWeight:'bold'}}>Start Meeting</Text>
             </TouchableOpacity>

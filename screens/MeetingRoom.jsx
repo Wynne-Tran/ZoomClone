@@ -1,12 +1,12 @@
 import React, {useState, useEffect, useRef} from 'react'
-import {View, Text, StyleSheet, SafeAreaView, Alert} from 'react-native'
+import {Modal, View, Text, StyleSheet, SafeAreaView, Alert} from 'react-native'
 import StartMeeting from '../components/StartMeeting';
 import {io} from 'socket.io-client'
 import { Camera, CameraType } from 'expo-camera';
 import * as Permissions from 'expo-permissions'
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import FontAwesome from 'react-native-vector-icons/FontAwesome'
-
+import Chat from '../components/Chat';
 
 const menuIcons = [
   {
@@ -34,9 +34,10 @@ const menuIcons = [
 function MeetingRoom() {
     const [name, setName] = useState();
     const [roomId, setRoomId] = useState();
-    const [activeUsers, setActiveUsers] = useState(["Wynne", "Chuot", "Aan"])
+    const [activeUsers, setActiveUsers] = useState(["B"])
     const [permission, setPermission] = useState(false)
     const [type, setType] = useState(CameraType.front);
+    const [modelVisible, setModelVisible] = useState(false);
 
     const API_URL = 'http://192.168.1.103:30001'
     const socket = io(`${API_URL}`)
@@ -45,12 +46,12 @@ function MeetingRoom() {
       setType(current => (current === CameraType.back ? CameraType.front : CameraType.back));
     }
     const joinRoom = () => {
+      openCam()
       socket.emit('join-room', {roomId: roomId, userName: name})
     }
 
     const openCam = async() => {
       const camera = await Permissions.askAsync(Permissions.CAMERA);
-      console.log(camera)
       if (camera.status === 'granted') {
         setPermission(true)
       } else {
@@ -60,60 +61,85 @@ function MeetingRoom() {
 
     //connect server
     useEffect(() => {
-      openCam()
-      console.log('here');
       socket.on("connection", () => console.log("Client connected"))
-
-      // socket.on('all-users', users => {
-      //   console.log("Active Users")
-      //   console.log(users)
-      //   setActiveUsers(users)
-      // })
+      socket.on('all-users', users => {
+        console.log("Active Users")
+        console.log('=====>', name);
+        users.filter(user => {user.userName != name});
+        setActiveUsers(users)
+        console.log('all-users', activeUsers)
+      })
     }, [])
+    console.log(name)
   return (
     <View style={styles.container}>
-      {permission ? (
+      {!permission ? (
+        <StartMeeting 
+        name={name} 
+        setName={setName} 
+        roomId={roomId} 
+        setRoomId={setRoomId} 
+        joinRoom={joinRoom} />  
+      ) : (
         <View style={{flex: 1}}>
-          <View style={styles.activeUsersContainers}>
-            <View style={styles.cameraContianer}>
-              <Camera 
-                type={type}
-                style={{
-                  width: activeUsers.length == 0 ? '100%' : 150, 
-                  height: activeUsers.length == 0 ? 600 : 150
-                }}
-              >
-                {/* <View style={styles.buttonContainer}>
-                  <TouchableOpacity style={styles.button} onPress={toggleCameraType}>
-                    <Text style={styles.text}>Flip Camera</Text>
-                  </TouchableOpacity>
-                </View> */}
-              </Camera>
-              {
-                activeUsers.map((user, index) => 
-                  <View key={index} style={styles.activeUsersContainer}>
-                    <Text style={{color: 'white'}}>{user}</Text>
-                  </View>
-                )
-              }
-            </View>
-          </View>
-          <View style={styles.menu}>
-            {menuIcons.map((item, index) => 
-              <TouchableOpacity style={styles.title} key={index}>
-                <FontAwesome name={item.name} size={24} color={'#ffffff'} />
-                <Text style={styles.textTitle}>{item.title}</Text>
-              </TouchableOpacity>
-            )}
+          <Modal
+            animationType='slide'
+            transparent={false}
+            presentationStyle={'fullScreen'}
+            visible={modelVisible}
+            onRequestClose = {() => {
+              //Alert.alert("Modal has been closed. ")
+              setModelVisible(!modelVisible)
+            }} 
+          >
+            <Chat 
+             modelVisible = {modelVisible}
+             setModelVisible = {setModelVisible}
+            />
+
+          </Modal>
+
+
+
+        <View style={styles.activeUsersContainers}>
+          <View style={styles.cameraContianer}>
+            <Camera 
+              type={type}
+              style={{
+                width: activeUsers.length <= 1  ? '100%' : 150, 
+                height: activeUsers.length <= 1  ? 600 : 150
+              }}
+            >
+              {/* <View style={styles.buttonContainer}>
+                <TouchableOpacity style={styles.button} onPress={toggleCameraType}>
+                  <Text style={styles.text}>Flip Camera</Text>
+                </TouchableOpacity>
+              </View> */}
+            </Camera>
+            {
+              activeUsers.filter(user => {user != name}).map((user, index) => 
+                <View key={index} style={styles.activeUsersContainer}>
+                  <Text style={{color: 'white'}}>{user}</Text>
+                </View>
+              )
+            }
           </View>
         </View>
-      ) : (
-        <StartMeeting 
-          name={name} 
-          setName={setName} 
-          roomId={roomId} 
-          setRoomId={setRoomId} 
-          joinRoom={joinRoom} />    
+        <View style={styles.menu}>
+          {menuIcons.map((item, index) => 
+            <TouchableOpacity style={styles.title} key={index}>
+              <FontAwesome name={item.name} size={24} color={'#ffffff'} />
+              <Text style={styles.textTitle}>{item.title}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity 
+            onPress={() => setModelVisible(true)}
+            style={styles.title}>
+              <FontAwesome name={'comment'} size={24} color={'#ffffff'} />
+              <Text style={styles.textTitle}>Chat</Text>
+            </TouchableOpacity>
+        </View>
+      </View>
       )}
     </View>
   )
